@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智慧猪舍数据可视化平台</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .dashboard {
+            max-width: 1200px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .connection-status {
+            margin-top: 15px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(0,0,0,0.3);
+            padding: 8px 20px;
+            border-radius: 30px;
+        }
+
+        .status-led {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .status-led.connected {
+            background: #2ecc71;
+            box-shadow: 0 0 8px #2ecc71;
+            animation: pulse 2s infinite;
+        }
+
+        .status-led.disconnected {
+            background: #e74c3c;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.2); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        .sensor-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            padding: 30px;
+        }
+
+        .sensor-card {
+            background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .sensor-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .sensor-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+
+        .sensor-value {
+            font-size: 3em;
+            font-weight: bold;
+            margin: 15px 0;
+            color: #2c3e50;
+        }
+
+        .sensor-unit {
+            font-size: 0.5em;
+            color: #7f8c8d;
+        }
+
+        .sensor-label {
+            font-size: 1.2em;
+            color: #34495e;
+            font-weight: 500;
+        }
+
+        .control-panel {
+            padding: 30px;
+            background: #ecf0f1;
+            border-top: 1px solid #bdc3c7;
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(245, 87, 108, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #fa709a, #fee140);
+            color: white;
+        }
+
+        .config-panel {
+            margin-top: 20px;
+            padding: 15px;
+            background: #fff;
+            border-radius: 10px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .config-panel input {
+            padding: 10px 15px;
+            border: 1px solid #bdc3c7;
+            border-radius: 25px;
+            width: 300px;
+            font-size: 14px;
+        }
+
+        .log-panel {
+            background: #2c3e50;
+            border-radius: 10px;
+            padding: 15px;
+            max-height: 250px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+
+        .log-entry {
+            color: #ecf0f1;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            padding: 5px;
+            border-bottom: 1px solid #34495e;
+        }
+
+        .log-time {
+            color: #3498db;
+        }
+
+        .chart-container {
+            padding: 30px;
+            background: white;
+            border-top: 1px solid #bdc3c7;
+        }
+
+        canvas {
+            max-width: 100%;
+            height: auto;
+        }
+
+        @media (max-width: 768px) {
+            .sensor-value {
+                font-size: 2em;
+            }
+            .sensor-grid {
+                grid-template-columns: 1fr;
+            }
+            .header h1 {
+                font-size: 1.8em;
+            }
+        }
+
+        @keyframes glow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .sensor-card.updated {
+            animation: pulse 0.5s ease;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mqtt@5.0.0/dist/mqtt.min.js"></script>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="header">
+            <h1>🐷 智慧猪舍数据可视化平台</h1>
+            <p>基于MQTT的实时环境监测系统</p>
+            <div class="connection-status">
+                <span class="status-led disconnected" id="statusLed"></span>
+                <span id="statusText">未连接</span>
+            </div>
+        </div>
+
+        <div class="sensor-grid">
+            <div class="sensor-card" id="tempCard">
+                <div class="sensor-icon">🌡️</div>
+                <div class="sensor-value" id="tempValue">--</div>
+                <div class="sensor-unit">°C</div>
+                <div class="sensor-label">温度</div>
+            </div>
+            <div class="sensor-card" id="humiCard">
+                <div class="sensor-icon">💧</div>
+                <div class="sensor-value" id="humiValue">--</div>
+                <div class="sensor-unit">%RH</div>
+                <div class="sensor-label">湿度</div>
+            </div>
+            <div class="sensor-card" id="luxCard">
+                <div class="sensor-icon">💡</div>
+                <div class="sensor-value" id="luxValue">--</div>
+                <div class="sensor-unit">lux</div>
+                <div class="sensor-label">光照度</div>
+            </div>
+        </div>
+
+        <div class="control-panel">
+            <div class="control-buttons">
+                <button class="btn btn-primary" id="connectBtn" onclick="showConnectDialog()">🔌 连接MQTT</button>
+                <button class="btn btn-success" onclick="testPublish()">📤 测试发布</button>
+                <button class="btn btn-danger" onclick="disconnectMQTT()">🔌 断开连接</button>
+                <button class="btn btn-secondary" onclick="clearLogs()">🗑️ 清空日志</button>
+            </div>
+            
+            <div class="config-panel">
+                <span>🔧 服务器地址：</span>
+                <input type="text" id="mqttHostInput" placeholder="ws://192.168.182.101:8083/mqtt" value="ws://192.168.182.101:8083/mqtt">
+                <button class="btn btn-primary" style="padding: 8px 20px;" onclick="quickConnect()">快速连接</button>
+            </div>
+
+            <div class="log-panel" id="logPanel">
+                <div class="log-entry">📋 系统就绪，等待连接...</div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="sensorChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        let client = null;
+        let isConnected = false;
+        let chart = null;
+        let reconnectTimer = null;
+        
+        let sensorHistory = {
+            temp: [],
+            humi: [],
+            lux: [],
+            time: []
+        };
+
+        // 初始化图表
+        function initChart() {
+            const ctx = document.getElementById('sensorChart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: '温度 (°C)',
+                            data: [],
+                            borderColor: '#e74c3c',
+                            backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: '湿度 (%)',
+                            data: [],
+                            borderColor: '#3498db',
+                            backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: '光照度 (lux)',
+                            data: [],
+                            borderColor: '#f39c12',
+                            backgroundColor: 'rgba(243, 156, 18, 0.1)',
+                            tension: 0.4,
+                            fill: true,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            title: {
+                                display: true,
+                                text: '温度 / 湿度'
+                            },
+                            min: 0,
+                            max: 100,
+                            grid: { color: 'rgba(0,0,0,0.05)' }
+                        },
+                        y1: {
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: '光照度 (lux)'
+                            },
+                            min: 0,
+                            max: 1000,
+                            grid: { drawOnChartArea: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 更新图表
+        function updateChart(temp, humi, lux) {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString();
+            
+            sensorHistory.temp.push(temp);
+            sensorHistory.humi.push(humi);
+            sensorHistory.lux.push(lux);
+            sensorHistory.time.push(timeStr);
+            
+            if (sensorHistory.temp.length > 20) {
+                sensorHistory.temp.shift();
+                sensorHistory.humi.shift();
+                sensorHistory.lux.shift();
+                sensorHistory.time.shift();
+            }
+            
+            chart.data.labels = [...sensorHistory.time];
+            chart.data.datasets[0].data = [...sensorHistory.temp];
+            chart.data.datasets[1].data = [...sensorHistory.humi];
+            chart.data.datasets[2].data = [...sensorHistory.lux];
+            chart.update();
+        }
+
+        // 添加日志
+        function addLog(message, type = 'info') {
+            const logPanel = document.getElementById('logPanel');
+            const time = new Date().toLocaleTimeString();
+            
+            let icon = '📝';
+            if (type === 'success') icon = '✅';
+            else if (type === 'error') icon = '❌';
+            else if (type === 'warning') icon = '⚠️';
+            else if (type === 'connect') icon = '🔌';
+            else if (type === 'message') icon = '📨';
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.innerHTML = `<span class="log-time">[${time}]</span> ${icon} ${message}`;
+            logPanel.appendChild(logEntry);
+            logEntry.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            
+            while (logPanel.children.length > 100) {
+                logPanel.removeChild(logPanel.firstChild);
+            }
+        }
+
+        // 更新UI状态
+        function updateConnectionStatus(connected) {
+            isConnected = connected;
+            const led = document.getElementById('statusLed');
+            const text = document.getElementById('statusText');
+            const connectBtn = document.getElementById('connectBtn');
+            
+            if (connected) {
+                led.className = 'status-led connected';
+                text.innerHTML = '已连接 ✓';
+                connectBtn.innerHTML = '🔌 已连接';
+                connectBtn.disabled = true;
+            } else {
+                led.className = 'status-led disconnected';
+                text.innerHTML = '未连接';
+                connectBtn.innerHTML = '🔌 连接MQTT';
+                connectBtn.disabled = false;
+            }
+        }
+
+        // 更新传感器显示
+        function updateSensorDisplay(data) {
+            let updated = false;
+            
+            if (data.Temp !== undefined && data.Temp !== null) {
+                const temp = parseFloat(data.Temp);
+                if (!isNaN(temp)) {
+                    document.getElementById('tempValue').innerHTML = temp.toFixed(1);
+                    updated = true;
+                }
+            }
+            if (data.Humi !== undefined && data.Humi !== null) {
+                const humi = parseFloat(data.Humi);
+                if (!isNaN(humi)) {
+                    document.getElementById('humiValue').innerHTML = humi.toFixed(1);
+                    updated = true;
+                }
+            }
+            if (data.Lux !== undefined && data.Lux !== null) {
+                const lux = parseFloat(data.Lux);
+                if (!isNaN(lux)) {
+                    document.getElementById('luxValue').innerHTML = lux.toFixed(0);
+                    updated = true;
+                }
+            }
+            
+            if (updated && data.Temp && data.Humi && data.Lux) {
+                updateChart(parseFloat(data.Temp), parseFloat(data.Humi), parseFloat(data.Lux));
+                
+                // 添加动画效果
+                document.getElementById('tempCard').classList.add('updated');
+                document.getElementById('humiCard').classList.add('updated');
+                document.getElementById('luxCard').classList.add('updated');
+                setTimeout(() => {
+                    document.getElementById('tempCard').classList.remove('updated');
+                    document.getElementById('humiCard').classList.remove('updated');
+                    document.getElementById('luxCard').classList.remove('updated');
+                }, 300);
+            }
+        }
+
+        // 处理MQTT消息
+        function handleMessage(topic, message) {
+            const msgStr = message.toString();
+            addLog(`[${topic}] ${msgStr.substring(0, 100)}`, 'message');
+            
+            try {
+                const data = JSON.parse(msgStr);
+                updateSensorDisplay(data);
+            } catch (e) {
+                // 不是JSON格式，尝试解析其他格式
+                if (msgStr.includes('Temp') && msgStr.includes('Humi')) {
+                    // 解析 "Temp 23.50,Humi 65.30,Lux 211.76" 格式
+                    const tempMatch = msgStr.match(/Temp\s*([\d.]+)/);
+                    const humiMatch = msgStr.match(/Humi\s*([\d.]+)/);
+                    const luxMatch = msgStr.match(/Lux\s*([\d.]+)/);
+                    
+                    if (tempMatch) updateSensorDisplay({ Temp: tempMatch[1] });
+                    if (humiMatch) updateSensorDisplay({ Humi: humiMatch[1] });
+                    if (luxMatch) updateSensorDisplay({ Lux: luxMatch[1] });
+                }
+            }
+        }
+
+        // 连接MQTT
+        function connectMQTT(host) {
+            if (isConnected) {
+                addLog('已经处于连接状态', 'warning');
+                return;
+            }
+            
+            if (!host) {
+                addLog('请输入MQTT服务器地址', 'error');
+                return;
+            }
+            
+            addLog(`正在连接 ${host} ...`, 'connect');
+            
+            try {
+                client = mqtt.connect(host, {
+                    clientId: 'web_' + Math.random().toString(16).substr(2, 8),
+                    keepalive: 30,
+                    clean: true,
+                    reconnectPeriod: 3000,
+                    connectTimeout: 10000,
+                    reschedulePings: true,
+                    protocolVersion: 4
+                });
+                
+                client.on('connect', () => {
+                    addLog('WebSocket连接成功！', 'success');
+                    updateConnectionStatus(true);
+                    
+                    // 订阅主题
+                    const topics = ['sensor/data', 'test/web/#', 'pubtopic'];
+                    topics.forEach(topic => {
+                        client.subscribe(topic, { qos: 1 }, (err) => {
+                            if (!err) {
+                                addLog(`已订阅: ${topic}`, 'success');
+                            } else {
+                                addLog(`订阅失败 ${topic}: ${err}`, 'error');
+                            }
+                        });
+                    });
+                });
+                
+                client.on('message', (topic, message) => {
+                    handleMessage(topic, message);
+                });
+                
+                client.on('error', (err) => {
+                    addLog(`连接错误: ${err.message}`, 'error');
+                    updateConnectionStatus(false);
+                });
+                
+                client.on('close', () => {
+                    if (isConnected) {
+                        addLog('连接已断开', 'warning');
+                    }
+                    updateConnectionStatus(false);
+                });
+                
+                client.on('reconnect', () => {
+                    addLog('正在尝试重连...', 'warning');
+                });
+                
+            } catch (e) {
+                addLog(`连接失败: ${e.message}`, 'error');
+                updateConnectionStatus(false);
+            }
+        }
+
+        // 快速连接（使用输入框的值）
+        function quickConnect() {
+            const host = document.getElementById('mqttHostInput').value.trim();
+            if (!host) {
+                addLog('请输入MQTT服务器地址', 'error');
+                return;
+            }
+            connectMQTT(host);
+        }
+
+        // 显示连接对话框
+        function showConnectDialog() {
+            if (isConnected) {
+                addLog('已经连接，如需重连请先断开', 'warning');
+                return;
+            }
+            quickConnect();
+        }
+
+        // 断开连接
+        function disconnectMQTT() {
+            if (client && isConnected) {
+                client.end(true);
+                addLog('已主动断开连接', 'warning');
+                updateConnectionStatus(false);
+                client = null;
+            } else {
+                addLog('没有活动的连接', 'warning');
+            }
+        }
+
+        // 测试发布
+        function testPublish() {
+            if (!client || !isConnected) {
+                addLog('请先连接到MQTT服务器', 'error');
+                return;
+            }
+            
+            const testData = {
+                Temp: (20 + Math.random() * 5).toFixed(2),
+                Humi: (60 + Math.random() * 15).toFixed(2),
+                Lux: (200 + Math.random() * 200).toFixed(0),
+                timestamp: new Date().toISOString(),
+                test: true
+            };
+            
+            const topic = 'test/web/frontend';
+            const payload = JSON.stringify(testData);
+            
+            client.publish(topic, payload, { qos: 1 }, (err) => {
+                if (!err) {
+                    addLog(`测试消息已发布到 ${topic}: ${payload}`, 'success');
+                } else {
+                    addLog(`发布失败: ${err}`, 'error');
+                }
+            });
+        }
+
+        // 清空日志
+        function clearLogs() {
+            const logPanel = document.getElementById('logPanel');
+            logPanel.innerHTML = '<div class="log-entry">📋 日志已清空</div>';
+            addLog('日志已清空', 'info');
+        }
+
+        // 自动从localStorage加载上次的服务器地址
+        function loadLastHost() {
+            const lastHost = localStorage.getItem('mqtt_last_host');
+            if (lastHost) {
+                document.getElementById('mqttHostInput').value = lastHost;
+            }
+        }
+        
+        function saveLastHost(host) {
+            localStorage.setItem('mqtt_last_host', host);
+        }
+
+        // 页面初始化
+        window.addEventListener('DOMContentLoaded', () => {
+            initChart();
+            loadLastHost();
+            addLog('智慧猪舍数据可视化平台已启动', 'success');
+            addLog('请输入MQTT服务器地址并点击"快速连接"', 'info');
+            addLog('示例地址格式: ws://192.168.182.101:8083/mqtt', 'info');
+        });
+        
+        // 保存输入框内容
+        const hostInput = document.getElementById('mqttHostInput');
+        hostInput.addEventListener('change', () => {
+            saveLastHost(hostInput.value);
+        });
+    </script>
+</body>
+</html>
