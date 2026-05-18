@@ -79,6 +79,7 @@ NetworkConnect(&network, "EMQX服务器IP", 1883);
 ## 实验结果
 
 ### 网页显示效果
+
 ![网页效果](screenshots/web_dashboard_1.png)
 
 ![网页效果](screenshots/web_dashboard_2.png)
